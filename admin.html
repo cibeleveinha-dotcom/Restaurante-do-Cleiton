@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - Restaurante do Cleiton</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- Login -->
+<div id="loginPage" class="login-page">
+    <div class="login-card">
+        <div class="login-brand">
+            <div class="icon"><i class="fas fa-utensils"></i></div>
+            <h2>Restaurante do Cleiton</h2>
+            <p style="color:var(--cinza)">Painel Administrativo</p>
+        </div>
+        <div id="loginErro" style="display:none" class="toast-msg error" style="position:relative;margin-bottom:12px"><i class="fas fa-exclamation-circle text-danger"></i><span>Email ou senha incorretos</span></div>
+        <div class="form-group"><label class="form-label fw-bold">Email</label><input type="email" class="form-input" id="loginEmail" value="admin@cleiton.com"></div>
+        <div class="form-group"><label class="form-label fw-bold">Senha</label><input type="password" class="form-input" id="loginSenha" value="admin123"></div>
+        <button class="btn-gold" style="width:100%;justify-content:center;margin-top:8px" onclick="fazerLogin()"><i class="fas fa-sign-in-alt me-2"></i>Entrar</button>
+        <div style="text-align:center;margin-top:16px"><a href="index.html" style="color:var(--cinza);font-size:0.9rem"><i class="fas fa-arrow-left me-1"></i>Voltar ao site</a></div>
+    </div>
+</div>
+
+<!-- Admin Panel -->
+<div id="adminPanel" style="display:none" class="admin-layout">
+    <nav class="admin-sidebar" id="adminSidebar">
+        <div class="brand"><h4><i class="fas fa-utensils me-2"></i>Cleiton</h4><small>Painel Admin</small></div>
+        <ul class="admin-nav">
+            <li><a href="#" class="active" onclick="showSection('dashboard',this)"><i class="fas fa-tachometer-alt"></i>Dashboard</a></li>
+            <li><a href="#" onclick="showSection('produtos',this)"><i class="fas fa-hamburger"></i>Produtos</a></li>
+            <li><a href="#" onclick="showSection('categorias',this)"><i class="fas fa-tags"></i>Categorias</a></li>
+            <li><a href="#" onclick="showSection('cupons',this)"><i class="fas fa-ticket-alt"></i>Cupons</a></li>
+        </ul>
+        <div style="padding:16px;margin-top:auto">
+            <a href="index.html" class="btn" style="width:100%;background:rgba(255,255,255,0.1);color:white;border:none;padding:8px;border-radius:8px;text-align:center;display:block;margin-bottom:8px;font-size:0.88rem"><i class="fas fa-external-link-alt me-1"></i>Ver Site</a>
+            <button class="btn" style="width:100%;background:rgba(220,53,69,0.2);color:#dc3545;border:none;padding:8px;border-radius:8px;cursor:pointer;font-size:0.88rem" onclick="fazerLogout()"><i class="fas fa-sign-out-alt me-1"></i>Sair</button>
+        </div>
+    </nav>
+
+    <div class="admin-main">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <button style="background:none;border:none;font-size:1.2rem;cursor:pointer;display:none" id="sidebarToggle" onclick="document.getElementById('adminSidebar').classList.toggle('show')"><i class="fas fa-bars"></i></button>
+            <h4 id="adminTitle" style="margin:0">Dashboard</h4>
+            <span style="color:var(--cinza);font-size:0.88rem"><i class="fas fa-user-circle me-1"></i>Admin | <span id="adminDate"></span></span>
+        </div>
+        <div id="adminContent"></div>
+    </div>
+</div>
+
+<script src="js/data.js"></script><script src="js/app.js"></script>
+<script>
+function fazerLogin() {
+    const email = document.getElementById('loginEmail').value;
+    const senha = document.getElementById('loginSenha').value;
+    if (adminLogin(email, senha)) {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'flex';
+        showSection('dashboard');
+    } else {
+        document.getElementById('loginErro').style.display = 'flex';
+        setTimeout(() => document.getElementById('loginErro').style.display = 'none', 3000);
+    }
+}
+
+function fazerLogout() {
+    adminLogout();
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('adminPanel').style.display = 'none';
+}
+
+function showSection(section, el) {
+    if (el) {
+        document.querySelectorAll('.admin-nav a').forEach(a => a.classList.remove('active'));
+        el.classList.add('active');
+    }
+    const titles = {
+        dashboard: 'Dashboard', produtos: 'Produtos',
+        categorias: 'Categorias', cupons: 'Cupons'
+    };
+    document.getElementById('adminTitle').textContent = titles[section] || section;
+
+    const db = getDB();
+    const container = document.getElementById('adminContent');
+
+    switch(section) {
+        case 'dashboard': renderDashboard(container, db); break;
+        case 'produtos': renderProdutosAdmin(container, db); break;
+        case 'categorias': renderCategoriasAdmin(container, db); break;
+        case 'cupons': renderCuponsAdmin(container, db); break;
+    }
+}
+
+function renderDashboard(c, db) {
+    c.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px">
+            <div class="stat-card"><div class="stat-icon" style="background:rgba(40,167,69,0.1);color:#28a745"><i class="fas fa-hamburger"></i></div><div><div class="stat-value">${db.produtos.filter(p => p.disponivel).length}</div><div class="stat-label">Produtos Ativos</div></div></div>
+        </div>`;
+}
+
+function renderProdutosAdmin(c, db) {
+    c.innerHTML = `
+        <div class="admin-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                <h5 style="margin:0"><i class="fas fa-hamburger me-2" style="color:var(--vermelho)"></i>Produtos (${db.produtos.length})</h5>
+                <button class="btn-gold-sm" onclick="novoProduto()"><i class="fas fa-plus me-1"></i>Novo Produto</button>
+            </div>
+            <div style="overflow-x:auto">
+                <table class="table-custom">
+                    <thead><tr><th>Foto</th><th>Nome</th><th>Categoria</th><th>Preço</th><th>Status</th><th>Destaque</th><th>Ações</th></tr></thead>
+                    <tbody>
+                        ${db.produtos.map(p => `<tr>
+                            <td><div style="width:50px;height:50px;border-radius:8px;overflow:hidden;background:#ddd;display:flex;align-items:center;justify-content:center">${p.foto ? `<img src="${p.foto}" style="width:100%;height:100%;object-fit:cover">` : `<i class="fas fa-utensils" style="color:#999"></i>`}</div></td>
+                            <td><strong>${p.nome}</strong></td>
+                            <td>${getCatName(p.categoria_id)}</td>
+                            <td style="color:var(--vermelho);font-weight:600">${formatarMoeda(p.preco)}</td>
+                            <td><button class="badge ${p.disponivel ? 'badge-success' : 'badge-secondary'}" style="border:none;cursor:pointer" onclick="toggleProduto(${p.id})">${p.disponivel ? 'Ativo' : 'Inativo'}</button></td>
+                            <td><button class="badge ${p.destaque ? 'badge-warning' : 'badge-secondary'}" style="border:none;cursor:pointer" onclick="toggleDestaque(${p.id})">${p.destaque ? 'Sim' : 'Não'}</button></td>
+                            <td>
+                                <button class="btn" style="background:none;border:none;color:var(--vermelho);cursor:pointer" onclick="editarProduto(${p.id})" title="Editar"><i class="fas fa-edit"></i></button>
+                                <button class="btn" style="background:none;border:none;color:#dc3545;cursor:pointer" onclick="excluirProduto(${p.id})" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="admin-card" id="produtoForm" style="display:none"></div>`;
+}
+
+function toggleProduto(id) { const db = getDB(); const p = db.produtos.find(p => p.id == id); if (p) { p.disponivel = !p.disponivel; saveDB(db); showSection('produtos'); toast('Status alterado!', 'success'); } }
+function toggleDestaque(id) { const db = getDB(); const p = db.produtos.find(p => p.id == id); if (p) { p.destaque = !p.destaque; saveDB(db); showSection('produtos'); toast('Destaque alterado!', 'success'); } }
+
+function novoProduto() {
+    const db = getDB();
+    const form = document.getElementById('produtoForm');
+    form.style.display = 'block';
+    form.innerHTML = `
+        <h5 style="margin-bottom:16px;color:var(--vermelho)"><i class="fas fa-plus me-2"></i>Novo Produto</h5>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+            <div style="text-align:center;min-width:180px">
+                <label class="form-label fw-bold">Foto do Produto</label>
+                <div id="epFotoPreview" style="width:180px;height:180px;border-radius:12px;overflow:hidden;background:#f0f0f0;display:flex;align-items:center;justify-content:center;border:2px dashed #ccc;margin-bottom:12px">
+                    <div style="text-align:center;color:#999"><i class="fas fa-image" style="font-size:2.5rem;display:block;margin-bottom:8px"></i><small>Escolha uma foto</small></div>
+                </div>
+                <input type="file" id="epFotoInput" accept="image/*" style="display:none" onchange="previewFoto(event)">
+                <button type="button" class="btn-red" style="width:100%" onclick="document.getElementById('epFotoInput').click()"><i class="fas fa-camera me-1"></i>Escolher Foto</button>
+                <small style="color:var(--cinza);display:block;margin-top:6px">JPG, PNG ou WebP<br>Máx: 2MB</small>
+            </div>
+            <div style="flex:1;min-width:250px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="form-group"><label class="form-label">Nome *</label><input class="form-input" id="epNome" placeholder="Nome do produto"></div>
+                    <div class="form-group"><label class="form-label">Categoria *</label><select class="form-select" id="epCategoria">${db.categorias.filter(c => c.ativo).map(c => `<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
+                    <div class="form-group"><label class="form-label">Preço (R$) *</label><input type="number" class="form-input" id="epPreco" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label class="form-label">Preço Promo (R$)</label><input type="number" class="form-input" id="epPrecoPromo" step="0.01" placeholder="0.00"></div>
+                </div>
+                <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-textarea" id="epDesc" placeholder="Descrição do produto"></textarea></div>
+                <div class="form-group"><label class="form-label">Ingredientes</label><input class="form-input" id="epIngredientes" placeholder="Separados por vírgula"></div>
+                <div style="display:flex;gap:16px;margin-top:8px">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="epPromocao"> Em Promoção</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="epDestaque"> Destaque</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="epDisponivel" checked> Disponível</label>
+                </div>
+                <button class="btn-gold-sm mt-3" onclick="salvarNovoProduto()"><i class="fas fa-save me-1"></i>Criar Produto</button>
+                <button class="btn" style="background:#6c757d;color:white;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;margin-left:8px" onclick="document.getElementById('produtoForm').style.display='none'">Cancelar</button>
+            </div>
+        </div>`;
+}
+
+function salvarNovoProduto() {
+    const nome = document.getElementById('epNome').value.trim();
+    const preco = parseFloat(document.getElementById('epPreco').value);
+    if (!nome) { toast('Informe o nome do produto!', 'error'); return; }
+    if (isNaN(preco) || preco <= 0) { toast('Informe um preço válido!', 'error'); return; }
+
+    const db = getDB();
+    const novoId = db.produtos.length > 0 ? Math.max(...db.produtos.map(p => p.id)) + 1 : 1;
+    const preview = document.getElementById('epFotoPreview');
+
+    const novoProduto = {
+        id: novoId,
+        categoria_id: parseInt(document.getElementById('epCategoria').value),
+        nome: nome,
+        descricao: document.getElementById('epDesc').value,
+        ingredientes: document.getElementById('epIngredientes').value,
+        preco: preco,
+        foto: (preview && preview.dataset.foto) ? preview.dataset.foto : '',
+        destaque: document.getElementById('epDestaque').checked,
+        promocao: document.getElementById('epPromocao').checked,
+        preco_promocional: parseFloat(document.getElementById('epPrecoPromo').value) || 0,
+        disponivel: document.getElementById('epDisponivel').checked
+    };
+
+    db.produtos.push(novoProduto);
+    saveDB(db);
+    showSection('produtos');
+    toast('Produto criado com sucesso!', 'success');
+}
+
+function excluirProduto(id) {
+    if (!confirm('Tem certeza que deseja excluir este produto?')) return;
+    const db = getDB();
+    db.produtos = db.produtos.filter(p => p.id != id);
+    saveDB(db);
+    showSection('produtos');
+    toast('Produto excluído!', 'success');
+}
+
+function editarProduto(id) {
+    const db = getDB();
+    const p = db.produtos.find(p => p.id == id);
+    if (!p) return;
+    const form = document.getElementById('produtoForm');
+    form.style.display = 'block';
+    form.innerHTML = `
+        <h5 style="margin-bottom:16px;color:var(--vermelho)"><i class="fas fa-edit me-2"></i>Editar: ${p.nome}</h5>
+
+        <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+            <!-- Foto Atual -->
+            <div style="text-align:center;min-width:180px">
+                <label class="form-label fw-bold">Foto Atual</label>
+                <div id="epFotoPreview" style="width:180px;height:180px;border-radius:12px;overflow:hidden;background:#f0f0f0;display:flex;align-items:center;justify-content:center;border:2px dashed #ccc;margin-bottom:12px">
+                    ${p.foto ? `<img src="${p.foto}" style="width:100%;height:100%;object-fit:cover">` : `<div style="text-align:center;color:#999"><i class="fas fa-image" style="font-size:2.5rem;display:block;margin-bottom:8px"></i><small>Sem foto</small></div>`}
+                </div>
+                <input type="file" id="epFotoInput" accept="image/*" style="display:none" onchange="previewFoto(event)">
+                <button type="button" class="btn-red" style="width:100%" onclick="document.getElementById('epFotoInput').click()">
+                    <i class="fas fa-camera me-1"></i>Escolher Foto
+                </button>
+                ${p.foto ? `<button type="button" class="btn" style="width:100%;margin-top:8px;background:#dc3545;color:white;border:none;padding:8px;border-radius:8px;cursor:pointer;font-size:0.85rem" onclick="removerFotoProduto(${p.id})">
+                    <i class="fas fa-trash me-1"></i>Remover Foto
+                </button>` : ''}
+                <small style="color:var(--cinza);display:block;margin-top:6px">JPG, PNG ou WebP<br>Máx: 2MB</small>
+            </div>
+
+            <!-- Dados do Produto -->
+            <div style="flex:1;min-width:250px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="form-group"><label class="form-label">Nome</label><input class="form-input" id="epNome" value="${p.nome}"></div>
+                    <div class="form-group"><label class="form-label">Preço (R$)</label><input type="number" class="form-input" id="epPreco" value="${p.preco}" step="0.01"></div>
+                    <div class="form-group"><label class="form-label">Preço Promo (R$)</label><input type="number" class="form-input" id="epPrecoPromo" value="${p.preco_promocional || ''}" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="epCategoria">${db.categorias.map(c => `<option value="${c.id}" ${p.categoria_id == c.id ? 'selected' : ''}>${c.nome}</option>`).join('')}</select></div>
+                </div>
+                <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-textarea" id="epDesc">${p.descricao}</textarea></div>
+                <div class="form-group"><label class="form-label">Ingredientes</label><input class="form-input" id="epIngredientes" value="${p.ingredientes || ''}" placeholder="Separados por vírgula"></div>
+                <div style="display:flex;gap:16px;margin-top:8px">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="epPromocao" ${p.promocao ? 'checked' : ''}> Em Promoção</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="epDestaque" ${p.destaque ? 'checked' : ''}> Destaque</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="epDisponivel" ${p.disponivel ? 'checked' : ''}> Disponível</label>
+                </div>
+                <button class="btn-gold-sm mt-3" onclick="salvarProduto(${p.id})"><i class="fas fa-save me-1"></i>Salvar Alterações</button>
+                <button class="btn" style="background:#6c757d;color:white;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;margin-left:8px" onclick="document.getElementById('produtoForm').style.display='none'">Cancelar</button>
+            </div>
+        </div>`;
+}
+
+function previewFoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast('Arquivo muito grande! Máx 2MB.', 'error'); return; }
+    if (!file.type.startsWith('image/')) { toast('Selecione uma imagem!', 'error'); return; }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('epFotoPreview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">`;
+        document.getElementById('epFotoPreview').dataset.foto = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function removerFotoProduto(id) {
+    if (!confirm('Remover a foto deste produto?')) return;
+    const db = getDB();
+    const p = db.produtos.find(p => p.id == id);
+    if (p) { p.foto = ''; saveDB(db); editarProduto(id); toast('Foto removida!', 'success'); }
+}
+
+function salvarProduto(id) {
+    const db = getDB();
+    const p = db.produtos.find(p => p.id == id);
+    if (!p) return;
+
+    p.nome = document.getElementById('epNome').value;
+    p.preco = parseFloat(document.getElementById('epPreco').value);
+    p.descricao = document.getElementById('epDesc').value;
+    p.ingredientes = document.getElementById('epIngredientes').value;
+    p.categoria_id = parseInt(document.getElementById('epCategoria').value);
+    p.preco_promocional = parseFloat(document.getElementById('epPrecoPromo').value) || 0;
+    p.promocao = document.getElementById('epPromocao').checked;
+    p.destaque = document.getElementById('epDestaque').checked;
+    p.disponivel = document.getElementById('epDisponivel').checked;
+
+    // Check if a new photo was selected
+    const preview = document.getElementById('epFotoPreview');
+    if (preview && preview.dataset.foto) {
+        p.foto = preview.dataset.foto;
+    }
+
+    saveDB(db);
+    showSection('produtos');
+    toast('Produto salvo com sucesso!', 'success');
+}
+
+function renderCategoriasAdmin(c, db) {
+    c.innerHTML = `
+        <div class="admin-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                <h5 style="margin:0"><i class="fas fa-tags me-2" style="color:var(--vermelho)"></i>Categorias (${db.categorias.length})</h5>
+                <button class="btn-gold-sm" onclick="novaCategoria()"><i class="fas fa-plus me-1"></i>Nova Categoria</button>
+            </div>
+            <div id="categoriaForm" style="display:none;margin-bottom:16px"></div>
+            <table class="table-custom">
+                <thead><tr><th>Nome</th><th>Produtos</th><th>Status</th><th>Ações</th></tr></thead>
+                <tbody>
+                    ${db.categorias.map(cat => `<tr>
+                        <td><strong>${cat.nome}</strong></td>
+                        <td>${db.produtos.filter(p => p.categoria_id == cat.id).length}</td>
+                        <td><button class="badge ${cat.ativo ? 'badge-success' : 'badge-secondary'}" style="border:none;cursor:pointer" onclick="toggleCategoria(${cat.id})">${cat.ativo ? 'Ativa' : 'Inativa'}</button></td>
+                        <td>
+                            <button class="btn" style="background:none;border:none;color:var(--vermelho);cursor:pointer" onclick="editarCategoria(${cat.id})" title="Editar"><i class="fas fa-edit"></i></button>
+                            <button class="btn" style="background:none;border:none;color:#dc3545;cursor:pointer" onclick="excluirCategoria(${cat.id})" title="Excluir"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>`;
+}
+
+function toggleCategoria(id) {
+    const db = getDB();
+    const cat = db.categorias.find(c => c.id == id);
+    if (cat) { cat.ativo = !cat.ativo; saveDB(db); showSection('categorias'); toast('Categoria alterada!', 'success'); }
+}
+
+function novaCategoria() {
+    const form = document.getElementById('categoriaForm');
+    form.style.display = 'block';
+    form.innerHTML = `
+        <div style="background:var(--off-white);padding:16px;border-radius:8px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+            <div class="form-group" style="flex:1;min-width:200px;margin:0"><label class="form-label">Nome *</label><input class="form-input" id="catNome" placeholder="Nome da categoria"></div>
+            <button class="btn-gold-sm" onclick="salvarNovaCategoria()"><i class="fas fa-save me-1"></i>Salvar</button>
+            <button class="btn" style="background:#6c757d;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer" onclick="document.getElementById('categoriaForm').style.display='none'">Cancelar</button>
+        </div>`;
+}
+
+function salvarNovaCategoria() {
+    const nome = document.getElementById('catNome').value.trim();
+    if (!nome) { toast('Informe o nome!', 'error'); return; }
+    const db = getDB();
+    const novoId = db.categorias.length > 0 ? Math.max(...db.categorias.map(c => c.id)) + 1 : 1;
+    db.categorias.push({ id: novoId, nome: nome, ordem: db.categorias.length + 1, ativo: true });
+    saveDB(db);
+    showSection('categorias');
+    toast('Categoria criada!', 'success');
+}
+
+function editarCategoria(id) {
+    const db = getDB();
+    const cat = db.categorias.find(c => c.id == id);
+    if (!cat) return;
+    const form = document.getElementById('categoriaForm');
+    form.style.display = 'block';
+    form.innerHTML = `
+        <div style="background:var(--off-white);padding:16px;border-radius:8px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+            <div class="form-group" style="flex:1;min-width:200px;margin:0"><label class="form-label">Nome</label><input class="form-input" id="catNome" value="${cat.nome}"></div>
+            <button class="btn-gold-sm" onclick="salvarCategoria(${id})"><i class="fas fa-save me-1"></i>Salvar</button>
+            <button class="btn" style="background:#6c757d;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer" onclick="document.getElementById('categoriaForm').style.display='none'">Cancelar</button>
+        </div>`;
+}
+
+function salvarCategoria(id) {
+    const nome = document.getElementById('catNome').value.trim();
+    if (!nome) { toast('Informe o nome!', 'error'); return; }
+    const db = getDB();
+    const cat = db.categorias.find(c => c.id == id);
+    if (cat) { cat.nome = nome; saveDB(db); showSection('categorias'); toast('Categoria atualizada!', 'success'); }
+}
+
+function excluirCategoria(id) {
+    const db = getDB();
+    const produtos = db.produtos.filter(p => p.categoria_id == id);
+    if (produtos.length > 0) { toast('Não é possível excluir: há ' + produtos.length + ' produtos nesta categoria!', 'error'); return; }
+    if (!confirm('Excluir esta categoria?')) return;
+    db.categorias = db.categorias.filter(c => c.id != id);
+    saveDB(db);
+    showSection('categorias');
+    toast('Categoria excluída!', 'success');
+}
+
+function renderCuponsAdmin(c, db) {
+    c.innerHTML = `
+        <div class="admin-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                <h5 style="margin:0"><i class="fas fa-ticket-alt me-2" style="color:var(--vermelho)"></i>Cupons (${db.cupons.length})</h5>
+                <button class="btn-gold-sm" onclick="novoCupom()"><i class="fas fa-plus me-1"></i>Novo Cupom</button>
+            </div>
+            <div id="cupomForm" style="display:none;margin-bottom:16px"></div>
+            <table class="table-custom">
+                <thead><tr><th>Código</th><th>Tipo</th><th>Valor</th><th>Mínimo</th><th>Validade</th><th>Status</th><th>Ações</th></tr></thead>
+                <tbody>
+                    ${db.cupons.map(cu => `<tr>
+                        <td><strong>${cu.codigo}</strong></td>
+                        <td><span class="badge ${cu.tipo === 'percentual' ? 'badge-info' : 'badge-primary'}">${cu.tipo === 'percentual' ? '%' : 'R$ Fixo'}</span></td>
+                        <td style="font-weight:600">${cu.tipo === 'percentual' ? cu.valor + '%' : formatarMoeda(cu.valor)}</td>
+                        <td>${formatarMoeda(cu.minimo)}</td>
+                        <td><small>${cu.validade}</small></td>
+                        <td><button class="badge ${cu.ativo ? 'badge-success' : 'badge-secondary'}" style="border:none;cursor:pointer" onclick="toggleCupom('${cu.codigo}')">${cu.ativo ? 'Ativo' : 'Inativo'}</button></td>
+                        <td>
+                            <button class="btn" style="background:none;border:none;color:var(--vermelho);cursor:pointer" onclick="editarCupom('${cu.codigo}')"><i class="fas fa-edit"></i></button>
+                            <button class="btn" style="background:none;border:none;color:#dc3545;cursor:pointer" onclick="excluirCupom('${cu.codigo}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>`;
+}
+
+function novoCupom() {
+    const form = document.getElementById('cupomForm');
+    form.style.display = 'block';
+    form.innerHTML = `
+        <div style="background:var(--off-white);padding:16px;border-radius:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;align-items:end">
+            <div class="form-group" style="margin:0"><label class="form-label">Código *</label><input class="form-input" id="cupCodigo" placeholder="EXEMPLO10" style="text-transform:uppercase"></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Tipo</label><select class="form-select" id="cupTipo"><option value="percentual">Percentual (%)</option><option value="fixo">Fixo (R$)</option></select></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Valor *</label><input type="number" class="form-input" id="cupValor" step="0.01"></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Mínimo (R$)</label><input type="number" class="form-input" id="cupMinimo" step="0.01" value="0"></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Validade</label><input type="date" class="form-input" id="cupValidade" value="2026-12-31"></div>
+            <button class="btn-gold-sm" onclick="salvarNovoCupom()"><i class="fas fa-save me-1"></i>Salvar</button>
+            <button class="btn" style="background:#6c757d;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer" onclick="document.getElementById('cupomForm').style.display='none'">Cancelar</button>
+        </div>`;
+}
+
+function salvarNovoCupom() {
+    const codigo = document.getElementById('cupCodigo').value.trim().toUpperCase();
+    if (!codigo) { toast('Informe o código!', 'error'); return; }
+    const db = getDB();
+    if (db.cupons.find(c => c.codigo === codigo)) { toast('Código já existe!', 'error'); return; }
+    db.cupons.push({
+        codigo: codigo,
+        tipo: document.getElementById('cupTipo').value,
+        valor: parseFloat(document.getElementById('cupValor').value) || 0,
+        minimo: parseFloat(document.getElementById('cupMinimo').value) || 0,
+        usos_max: 100,
+        usos_atual: 0,
+        validade: document.getElementById('cupValidade').value,
+        ativo: true
+    });
+    saveDB(db);
+    showSection('cupons');
+    toast('Cupom criado!', 'success');
+}
+
+function toggleCupom(codigo) {
+    const db = getDB();
+    const cup = db.cupons.find(c => c.codigo === codigo);
+    if (cup) { cup.ativo = !cup.ativo; saveDB(db); showSection('cupons'); toast('Cupom alterado!', 'success'); }
+}
+
+function editarCupom(codigo) {
+    const db = getDB();
+    const cup = db.cupons.find(c => c.codigo === codigo);
+    if (!cup) return;
+    const form = document.getElementById('cupomForm');
+    form.style.display = 'block';
+    form.innerHTML = `
+        <div style="background:var(--off-white);padding:16px;border-radius:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;align-items:end">
+            <div class="form-group" style="margin:0"><label class="form-label">Código</label><input class="form-input" id="cupCodigo" value="${cup.codigo}" style="text-transform:uppercase" readonly></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Tipo</label><select class="form-select" id="cupTipo"><option value="percentual" ${cup.tipo==='percentual'?'selected':''}>Percentual (%)</option><option value="fixo" ${cup.tipo==='fixo'?'selected':''}>Fixo (R$)</option></select></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Valor</label><input type="number" class="form-input" id="cupValor" step="0.01" value="${cup.valor}"></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Mínimo</label><input type="number" class="form-input" id="cupMinimo" step="0.01" value="${cup.minimo}"></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Validade</label><input type="date" class="form-input" id="cupValidade" value="${cup.validade}"></div>
+            <button class="btn-gold-sm" onclick="salvarCupom('${cup.codigo}')"><i class="fas fa-save me-1"></i>Salvar</button>
+            <button class="btn" style="background:#6c757d;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer" onclick="document.getElementById('cupomForm').style.display='none'">Cancelar</button>
+        </div>`;
+}
+
+function salvarCupom(codigoAntigo) {
+    const db = getDB();
+    const cup = db.cupons.find(c => c.codigo === codigoAntigo);
+    if (!cup) return;
+    cup.tipo = document.getElementById('cupTipo').value;
+    cup.valor = parseFloat(document.getElementById('cupValor').value) || 0;
+    cup.minimo = parseFloat(document.getElementById('cupMinimo').value) || 0;
+    cup.validade = document.getElementById('cupValidade').value;
+    saveDB(db);
+    showSection('cupons');
+    toast('Cupom atualizado!', 'success');
+}
+
+function excluirCupom(codigo) {
+    if (!confirm('Excluir este cupom?')) return;
+    const db = getDB();
+    db.cupons = db.cupons.filter(c => c.codigo !== codigo);
+    saveDB(db);
+    showSection('cupons');
+    toast('Cupom excluído!', 'success');
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('adminDate').textContent = new Date().toLocaleDateString('pt-BR');
+    if (isAdminLogged()) {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'flex';
+        showSection('dashboard');
+    }
+    // Show sidebar toggle on mobile
+    if (window.innerWidth <= 992) document.getElementById('sidebarToggle').style.display = 'block';
+    window.addEventListener('resize', () => {
+        document.getElementById('sidebarToggle').style.display = window.innerWidth <= 992 ? 'block' : 'none';
+    });
+});
+</script>
+</body></html>
